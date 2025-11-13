@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Historiador de Imagens</title>
+    <!-- Carrega o Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Define a fonte Inter (preferida pelo Tailwind) -->
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        /* Estilo para a fonte do <pre> não ser monoespaçada */
+        pre {
+             font-family: 'Inter', sans-serif;
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-blue-100 to-purple-200">
+
+    <div class="flex items-center justify-center min-h-screen w-full p-4">
+        
+        <div class="w-full max-w-2xl bg-white/80 backdrop-blur-lg rounded-2xl shadow-xl p-6 sm:p-8 border border-gray-200">
+            
+            <!-- --- Cabeçalho --- -->
+            <div class="text-center mb-6">
+                <h1 class="text-3xl font-bold text-gray-800">Historiador de Imagens 🏛️</h1>
+                <p class="text-gray-600 mt-2">Envie uma foto de um monumento e descubra sua história.</p>
+            </div>
+
+            <!-- --- Área de Upload --- -->
+            <div class="mb-4">
+                <label for="file-upload" class="flex flex-col items-center justify-center w-full h-48 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100 transition-colors">
+                    <!-- Pré-visualização da Imagem -->
+                    <img id="image-preview" src="" alt="Pré-visualização" class="hidden max-h-full max-w-full object-contain rounded-lg p-2" />
+                    <!-- Prompt de Upload (inicial) -->
+                    <div id="upload-prompt" class="flex flex-col items-center justify-center pt-5 pb-6">
+                        <svg class="w-8 h-8 mb-4 text-gray-500" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 16">
+                            <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 13h3a3 3 0 0 0 0-6h-.025A5.56 5.56 0 0 0 16 6.5 5.5 5.5 0 0 0 5.207 5.021C5.137 5.017 5.071 5 5 5a4 4 0 0 0 0 8h2.167M10 15V6m0 0L8 8m2-2 2 2"/>
+                        </svg>
+                        <p class="mb-2 text-sm text-gray-500"><span class="font-semibold">Clique para anexar</span> ou arraste</p>
+                        <p class="text-xs text-gray-500">PNG, JPG, WEBP</p>
+                    </div>
+                    <input id="file-upload" type="file" class="hidden" accept="image/*" />
+                </label>
+                
+                <!-- Nome do arquivo -->
+                <p id="file-name-display" class="text-center text-sm text-gray-500 mt-2 truncate"></p>
+            </div>
+
+            <!-- --- Botão de Envio --- -->
+            <button id="submit-button" disabled class="w-full bg-blue-600 text-white font-bold py-3 px-6 rounded-lg hover:bg-blue-700 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed shadow-md flex items-center justify-center">
+                <!-- Ícone de Loading (inicialmente oculto) -->
+                <svg id="loading-spinner" class="animate-spin -ml-1 mr-3 h-5 w-5 text-white hidden" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                <!-- Texto do Botão -->
+                <span id="submit-button-text">Gerar História e Post</span>
+            </button>
+
+            <!-- --- Seção de Erro --- -->
+            <div id="error-message" class="hidden mt-4 bg-red-100 border border-red-300 text-red-800 p-3 rounded-lg text-center">
+                <!-- Mensagens de erro aparecerão aqui -->
+            </div>
+
+            <!-- --- Seção de Resultados (inicialmente oculta) --- -->
+            <div id="results-section" class="hidden mt-8 space-y-6">
+                
+                <!-- Card de História -->
+                <div class="bg-white p-5 rounded-lg shadow-inner border border-gray-100">
+                    <h2 id="result-identificacao" class="text-2xl font-semibold text-gray-800 mb-3 border-b pb-2">
+                        <!-- Identificação do local -->
+                    </h2>
+                    <p id="result-historia" class="text-gray-700 leading-relaxed whitespace-pre-wrap">
+                        <!-- História do local -->
+                    </p>
+                </div>
+
+                <!-- Card do Instagram -->
+                <div class="bg-white p-5 rounded-lg shadow-inner border border-gray-100">
+                    <div class="flex justify-between items-center mb-3 border-b pb-2">
+                        <h2 class="text-2xl font-semibold text-gray-800">Post para Instagram 📱</h2>
+                        <button id="copy-button" class="bg-gray-200 text-gray-700 hover:bg-gray-300 py-1 px-3 rounded-md text-sm font-medium transition-colors">
+                            Copiar
+                        </button>
+                    </div>
+                    <pre id="result-post" class="text-gray-700 leading-relaxed whitespace-pre-wrap bg-gray-50 p-4 rounded-md text-sm">
+                        <!-- Post do Instagram -->
+                    </pre>
+                </div>
+
+            </div>
+            
+        </div>
+    </div>
+
+    <script>
+        // Espera o documento carregar para rodar o script
+        document.addEventListener('DOMContentLoaded', () => {
+
+            // --- Constantes da API ---
+            const API_KEY = "AIzaSyBo90fWoREhClB8W3fuI4mD8_eEDrPYrKo"; // Deixe em branco, será fornecido pelo ambiente
+            const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${API_KEY}`;
+            const RESPONSE_SCHEMA = {
+                type: "OBJECT",
+                properties: {
+                    identificacao: { type: "STRING" },
+                    historia: { type: "STRING" },
+                    postInstagram: { type: "STRING" }
+                },
+                required: ["identificacao", "historia", "postInstagram"]
+            };
+
+            // --- Elementos DOM ---
+            const fileUpload = document.getElementById('file-upload');
+            const imagePreview = document.getElementById('image-preview');
+            const uploadPrompt = document.getElementById('upload-prompt');
+            const fileNameDisplay = document.getElementById('file-name-display');
+            const submitButton = document.getElementById('submit-button');
+            const submitButtonText = document.getElementById('submit-button-text');
+            const loadingSpinner = document.getElementById('loading-spinner');
+            const errorMessage = document.getElementById('error-message');
+            const resultsSection = document.getElementById('results-section');
+            const resultIdentificacao = document.getElementById('result-identificacao');
+            const resultHistoria = document.getElementById('result-historia');
+            const resultPost = document.getElementById('result-post');
+            const copyButton = document.getElementById('copy-button');
+
+            // --- Estado da Aplicação ---
+            let base64Image = null;
+            let imageFile = null;
+
+            // --- Funções Auxiliares de UI ---
+            
+            /** Mostra uma mensagem de erro */
+            function showError(message) {
+                errorMessage.textContent = message;
+                errorMessage.classList.remove('hidden');
+            }
+
+            /** Limpa a mensagem de erro */
+            function clearError() {
+                errorMessage.textContent = '';
+                errorMessage.classList.add('hidden');
+            }
+
+            /** Controla o estado de carregamento do botão */
+            function setLoading(isLoading) {
+                submitButton.disabled = isLoading;
+                if (isLoading) {
+                    submitButtonText.textContent = 'Analisando...';
+                    loadingSpinner.classList.remove('hidden');
+                    submitButton.classList.add('opacity-50', 'cursor-not-allowed');
+                } else {
+                    submitButtonText.textContent = 'Gerar História e Post';
+                    loadingSpinner.classList.add('hidden');
+                    submitButton.classList.remove('opacity-50', 'cursor-not-allowed');
+                }
+            }
+
+            /** Mostra os resultados na tela */
+            function showResults(analysisResult) {
+                resultIdentificacao.textContent = analysisResult.identificacao || 'História do Local';
+                resultHistoria.textContent = analysisResult.historia;
+                resultPost.textContent = analysisResult.postInstagram;
+                resultsSection.classList.remove('hidden');
+            }
+
+            /** Limpa os resultados anteriores */
+            function clearResults() {
+                resultsSection.classList.add('hidden');
+                resultIdentificacao.textContent = '';
+                resultHistoria.textContent = '';
+                resultPost.textContent = '';
+            }
+
+            // --- Funções de Lógica ---
+
+            /**
+             * Tenta executar uma função assíncrona com tentativas de backoff exponencial.
+             */
+            const fetchWithBackoff = async (asyncFn, maxRetries = 5, baseDelay = 1000) => {
+                let retries = 0;
+                while (retries < maxRetries) {
+                    try {
+                        const response = await asyncFn();
+                        if (!response.ok) {
+                            if (response.status === 429 || response.status >= 500) {
+                                throw new Error(`HTTP error! status: ${response.status}`);
+                            } else {
+                                const errorData = await response.json();
+                                console.error("Erro da API (não tentará novamente):", errorData);
+                                showError(`Erro da API: ${errorData.error?.message || response.statusText}`);
+                                return null;
+                            }
+                        }
+                        return await response.json();
+                    } catch (error) {
+                        retries++;
+                        if (retries >= maxRetries) {
+                            console.error("Máximo de tentativas atingido.", error);
+                            showError("O serviço está sobrecarregado. Por favor, tente novamente mais tarde.");
+                            return null;
+                        }
+                        const delay = baseDelay * Math.pow(2, retries) + Math.random() * 1000;
+                        await new Promise(resolve => setTimeout(resolve, delay));
+                    }
+                }
+                return null;
+            };
+
+            /** Converte um arquivo para string Base64 (apenas os dados) */
+            const convertFileToBase64 = (file) => {
+                return new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.readAsDataURL(file);
+                    reader.onload = () => {
+                        const base64String = reader.result.split(',')[1];
+                        resolve(base64String);
+                    };
+                    reader.onerror = (error) => reject(error);
+                });
+            };
+
+            /** Copia texto para a área de transferência */
+            const copyToClipboard = (text) => {
+                const textArea = document.createElement("textarea");
+                textArea.value = text;
+                textArea.style.position = "fixed";
+                textArea.style.opacity = 0;
+                document.body.appendChild(textArea);
+                textArea.select();
+                try {
+                    document.execCommand('copy');
+                    copyButton.textContent = "Copiado!";
+                    copyButton.classList.remove('bg-gray-200', 'text-gray-700', 'hover:bg-gray-300');
+                    copyButton.classList.add('bg-green-100', 'text-green-700');
+                    setTimeout(() => {
+                        copyButton.textContent = "Copiar";
+                        copyButton.classList.add('bg-gray-200', 'text-gray-700', 'hover:bg-gray-300');
+                        copyButton.classList.remove('bg-green-100', 'text-green-700');
+                    }, 2000);
+                } catch (err) {
+                    console.error('Falha ao copiar texto: ', err);
+                    showError("Não foi possível copiar o texto.");
+                }
+                document.body.removeChild(textArea);
+            };
+
+            // --- Manipuladores de Eventos ---
+
+            /** Manipulador de mudança de imagem */
+            fileUpload.addEventListener('change', async (event) => {
+                const file = event.target.files[0];
+                if (!file) return;
+
+                if (!file.type.startsWith("image/")) {
+                    showError("Por favor, anexe um arquivo de imagem (jpeg, png, etc.).");
+                    return;
+                }
+                
+                clearError();
+                clearResults();
+                imageFile = file;
+
+                // Mostra o nome do arquivo
+                fileNameDisplay.textContent = `Arquivo: ${file.name}`;
+
+                try {
+                    // Converte para base64
+                    const base64 = await convertFileToBase64(file);
+                    base64Image = base64; // Salva os dados brutos
+
+                    // Mostra a pré-visualização
+                    imagePreview.src = `data:${file.type};base64,${base64}`;
+                    imagePreview.classList.remove('hidden');
+                    uploadPrompt.classList.add('hidden');
+                    
+                    // Habilita o botão
+                    submitButton.disabled = false;
+
+                } catch (error) {
+                    console.error("Erro ao converter imagem:", error);
+                    showError("Não foi possível processar a imagem.");
+                    base64Image = null;
+                    imageFile = null;
+                    submitButton.disabled = true;
+                }
+            });
+
+            /** Manipulador de envio (clique no botão) */
+            submitButton.addEventListener('click', async () => {
+                if (!base64Image) {
+                    showError("Por favor, escolha uma imagem primeiro.");
+                    return;
+                }
+
+                setLoading(true);
+                clearError();
+                clearResults();
+
+                const prompt = `
+                    Você é um historiador especialista e um guru de mídias sociais. 
+                    Analise a imagem deste local ou monumento.
+                    1. Identifique o local/monumento (campo 'identificacao').
+                    2. Forneça um resumo de sua história e significado (campo 'historia').
+                    3. Crie uma legenda de post para o Instagram sobre ele. A legenda deve ser envolvente, informativa, incluir emojis relevantes e 3-5 hashtags populares (campo 'postInstagram').
+                `;
+
+                const payload = {
+                    contents: [
+                        {
+                            parts: [
+                                { text: prompt },
+                                {
+                                    inlineData: {
+                                        mimeType: imageFile.type,
+                                        data: base64Image
+                                    }
+                                }
+                            ]
+                        }
+                    ],
+                    generationConfig: {
+                        responseMimeType: "application/json",
+                        responseSchema: RESPONSE_SCHEMA
+                    }
+                };
+
+                const result = await fetchWithBackoff(() => 
+                    fetch(API_URL, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    })
+                );
+
+                setLoading(false);
+
+                if (result && result.candidates?.[0]?.content?.parts?.[0]?.text) {
+                    try {
+                        const jsonResponse = JSON.parse(result.candidates[0].content.parts[0].text);
+                        showResults(jsonResponse);
+                    } catch (e) {
+                        console.error("Erro ao analisar JSON da resposta:", e);
+                        showError("A resposta da API não pôde ser formatada. Tente novamente.");
+                    }
+                } else if (!errorMessage.textContent) { // Só mostra erro se o fetchWithBackoff já não tiver mostrado um
+                    showError("Não foi possível obter uma resposta da API. Verifique o console para detalhes.");
+                }
+            });
+
+            /** Manipulador do botão de copiar */
+            copyButton.addEventListener('click', () => {
+                const textToCopy = resultPost.textContent;
+                if (textToCopy) {
+                    copyToClipboard(textToCopy);
+                }
+            });
+
+        });
+    </script>
+
+</body>
+</html>
