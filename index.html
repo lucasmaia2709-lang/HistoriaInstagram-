@@ -21,7 +21,11 @@
         .scrollbar-hide::-webkit-scrollbar { display: none; }
         .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
         
-        .pt-safe-top { padding-top: env(safe-area-inset-top); }
+        /* CORREÇÃO CRÍTICA DO TOPO (IPHONE) */
+        /* Adicionei +20px além da área segura para garantir que não encoste no relógio */
+        .pt-safe-top { 
+            padding-top: calc(env(safe-area-inset-top) + 20px); 
+        }
         .pb-safe-bottom { padding-bottom: env(safe-area-inset-bottom); }
 
         .glass-panel {
@@ -229,7 +233,7 @@
     <!-- TELA 3: SCANNER -->
     <!-- ================================================================== -->
     <div id="view-scan" class="hidden fixed inset-0 z-50 flex flex-col bg-[#f0f2f5] overflow-y-auto">
-        <div class="pt-safe-top px-4 py-4 flex items-center sticky top-0 bg-white/80 backdrop-blur-md z-10 border-b border-gray-200">
+        <div class="pt-safe-top px-4 py-4 flex items-center sticky top-0 bg-white/80 backdrop-blur-md z-30 border-b border-gray-200">
             <button id="btn-back-home" class="p-2 -ml-2 rounded-full hover:bg-gray-100 transition-colors">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
@@ -297,7 +301,7 @@
     <!-- TELA 4: CATÁLOGO (Collection View) -->
     <!-- ================================================================== -->
     <div id="view-catalog" class="hidden fixed inset-0 z-50 flex flex-col bg-[#f0f2f5]">
-        <div class="pt-safe-top px-4 py-4 flex items-center sticky top-0 bg-white/80 backdrop-blur-md z-10 border-b border-gray-200">
+        <div class="pt-safe-top px-4 py-4 flex items-center sticky top-0 bg-white/80 backdrop-blur-md z-30 border-b border-gray-200">
             <button id="btn-close-catalog" class="p-2 -ml-2 rounded-full hover:bg-gray-100 transition-colors">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
