@@ -2,366 +2,729 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Historiador de Imagens</title>
-    <!-- Carrega o Tailwind CSS -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    
+    <!-- --- Configurações PWA e iOS --- -->
+    <title>Historiador</title>
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Historiador">
+    <meta name="theme-color" content="#1e1b4b">
+
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Define a fonte Inter (preferida pelo Tailwind) -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
+    
     <style>
-        body {
-            font-family: 'Inter', sans-serif;
+        body { font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; }
+        h1, h2, .serif-font { font-family: 'Playfair Display', serif; }
+        
+        .scrollbar-hide::-webkit-scrollbar { display: none; }
+        .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+        
+        .pt-safe-top { padding-top: env(safe-area-inset-top); }
+        .pb-safe-bottom { padding-bottom: env(safe-area-inset-bottom); }
+
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.5);
         }
-        /* Estilo para a fonte do <pre> não ser monoespaçada */
-        pre {
-             font-family: 'Inter', sans-serif;
-        }
+
+        .fade-enter { opacity: 0; transform: scale(0.95); }
+        .fade-enter-active { opacity: 1; transform: scale(1); transition: opacity 300ms, transform 300ms cubic-bezier(0.16, 1, 0.3, 1); }
+        
+        .btn-press:active { transform: scale(0.96); transition: transform 0.1s; }
+        
+        /* Classe utilitária para garantir clique em mobile */
+        .tap-highlight-transparent { -webkit-tap-highlight-color: transparent; }
     </style>
 </head>
-<body class="bg-gradient-to-br from-blue-100 to-purple-200">
+<body class="bg-[#f0f2f5] min-h-screen text-gray-800 antialiased overflow-hidden">
+    
+    <!-- Fundo Decorativo -->
+    <div class="fixed inset-0 z-0 overflow-hidden pointer-events-none">
+        <div class="absolute -top-[20%] -left-[10%] w-[70%] h-[70%] bg-blue-200 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob"></div>
+        <div class="absolute top-[10%] -right-[10%] w-[60%] h-[60%] bg-purple-200 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob animation-delay-2000"></div>
+        <div class="absolute -bottom-[20%] left-[20%] w-[60%] h-[60%] bg-pink-200 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob animation-delay-4000"></div>
+    </div>
 
-    <div class="flex items-center justify-center min-h-screen w-full p-4">
-        
-        <div class="w-full max-w-2xl bg-white/80 backdrop-blur-lg rounded-2xl shadow-xl p-6 sm:p-8 border border-gray-200">
-            
-            <!-- --- Cabeçalho --- -->
-            <div class="text-center mb-6">
-                <h1 class="text-3xl font-bold text-gray-800">Historiador de Imagens 🏛️</h1>
-                <p class="text-gray-600 mt-2">Envie uma foto de um monumento e descubra sua história.</p>
+    <!-- --- Script PWA --- -->
+    <script>
+        (function() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 512; canvas.height = 512;
+            const ctx = canvas.getContext('2d');
+            const grd = ctx.createLinearGradient(0, 0, 0, 512);
+            grd.addColorStop(0, "#1e3a8a"); grd.addColorStop(1, "#4c1d95");
+            ctx.fillStyle = grd; ctx.fillRect(0, 0, 512, 512);
+            ctx.font = '300px serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('🏛️', 256, 256);
+            const iconUrl = canvas.toDataURL('image/png');
+            let link = document.querySelector("link[rel*='icon']") || document.createElement('link');
+            link.type = 'image/png'; link.rel = 'shortcut icon'; link.href = iconUrl;
+            document.head.appendChild(link);
+            let appleLink = document.querySelector("link[rel='apple-touch-icon']") || document.createElement('link');
+            appleLink.rel = 'apple-touch-icon'; appleLink.href = iconUrl;
+            document.head.appendChild(appleLink);
+        })();
+    </script>
+
+    <!-- ================================================================== -->
+    <!-- TELA 1: LOGIN & CADASTRO (Auth) -->
+    <!-- ================================================================== -->
+    <div id="view-auth" class="fixed inset-0 z-50 flex flex-col justify-center px-6 pt-safe-top pb-safe-bottom bg-white/30 backdrop-blur-md transition-all duration-500 overflow-y-auto">
+        <div class="w-full max-w-sm mx-auto my-auto">
+            <div class="text-center mb-10">
+                <div class="inline-block p-4 rounded-3xl bg-white shadow-xl mb-4 text-5xl">🏛️</div>
+                <h1 class="text-4xl font-bold text-gray-900 tracking-tight">Historiador</h1>
+                <p class="text-gray-500 mt-2">Sua jornada pela história começa aqui.</p>
             </div>
 
-            <!-- --- Área de Upload --- -->
-            <div class="mb-4">
-                <label for="file-upload" class="flex flex-col items-center justify-center w-full h-48 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100 transition-colors">
-                    <!-- Pré-visualização da Imagem -->
-                    <img id="image-preview" src="" alt="Pré-visualização" class="hidden max-h-full max-w-full object-contain rounded-lg p-2" />
-                    <!-- Prompt de Upload (inicial) -->
-                    <div id="upload-prompt" class="flex flex-col items-center justify-center pt-5 pb-6">
-                        <svg class="w-8 h-8 mb-4 text-gray-500" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 16">
-                            <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 13h3a3 3 0 0 0 0-6h-.025A5.56 5.56 0 0 0 16 6.5 5.5 5.5 0 0 0 5.207 5.021C5.137 5.017 5.071 5 5 5a4 4 0 0 0 0 8h2.167M10 15V6m0 0L8 8m2-2 2 2"/>
+            <!-- Login Form -->
+            <form id="auth-form" class="space-y-5">
+                <div class="glass-panel p-8 rounded-3xl shadow-lg">
+                    <div id="login-success-msg" class="hidden mb-4 p-3 bg-green-50 text-green-700 rounded-xl text-center text-sm font-medium border border-green-100">✨ Conta criada! Pode entrar.</div>
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1 ml-1">Email</label>
+                            <input type="email" id="auth-email" required class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none transition-all text-gray-800 placeholder-gray-400" placeholder="seu@email.com">
+                        </div>
+                        <div>
+                            <div class="flex justify-between items-center mb-1 ml-1">
+                                <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wider">Senha</label>
+                                <button type="button" id="btn-forgot-password-link" class="text-xs text-indigo-600 hover:text-indigo-800 font-medium">Esqueceu?</button>
+                            </div>
+                            <input type="password" id="auth-password" required class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none transition-all text-gray-800 placeholder-gray-400" placeholder="••••••••">
+                        </div>
+                    </div>
+                    <div id="auth-error" class="hidden mt-4 text-red-500 text-sm text-center bg-red-50 p-2 rounded-lg"></div>
+                    <button type="submit" id="btn-login" class="btn-press w-full mt-6 bg-gray-900 text-white font-semibold py-3.5 rounded-xl shadow-lg hover:bg-black transition-colors">Entrar</button>
+                </div>
+                <div class="text-center">
+                    <p class="text-gray-500 text-sm">Não tem uma conta?</p>
+                    <button type="button" id="btn-to-register" class="mt-2 text-indigo-600 font-bold hover:underline">Criar conta gratuita</button>
+                </div>
+            </form>
+
+            <!-- Register Form -->
+            <form id="register-form" class="hidden space-y-5">
+                <div class="glass-panel p-8 rounded-3xl shadow-lg">
+                    <h2 class="text-xl font-bold text-gray-900 mb-6 text-center">Criar Nova Conta</h2>
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1 ml-1">Nome</label>
+                            <input type="text" id="reg-name" required class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none" placeholder="Seu Nome">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1 ml-1">Email</label>
+                            <input type="email" id="reg-email" required class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none" placeholder="seu@email.com">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1 ml-1">Senha</label>
+                            <input type="password" id="reg-password" required minlength="6" class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none" placeholder="Mínimo 6 caracteres">
+                        </div>
+                    </div>
+                    <div id="reg-error" class="hidden mt-4 text-red-500 text-sm text-center bg-red-50 p-2 rounded-lg"></div>
+                    <button type="submit" id="btn-submit-register" class="btn-press w-full mt-6 bg-indigo-600 text-white font-semibold py-3.5 rounded-xl shadow-lg hover:bg-indigo-700 transition-colors">Confirmar Cadastro</button>
+                </div>
+                <div class="text-center">
+                    <button type="button" id="btn-back-login" class="text-gray-500 font-medium hover:text-gray-800">← Voltar para Login</button>
+                </div>
+            </form>
+
+            <!-- Forgot Password -->
+            <div id="forgot-password-modal" class="hidden absolute inset-0 z-50 flex items-center justify-center bg-white/90 backdrop-blur-sm p-6 rounded-3xl">
+                <div class="w-full glass-panel p-6 rounded-3xl shadow-2xl border border-gray-200">
+                    <h3 class="text-lg font-bold text-gray-900 mb-2">Recuperar Senha</h3>
+                    <p class="text-sm text-gray-500 mb-4">Digite seu email para receber o link de redefinição.</p>
+                    <input type="email" id="reset-email" class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl mb-3 focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="seu@email.com">
+                    <div id="reset-msg" class="hidden text-xs text-center p-2 mb-2 rounded"></div>
+                    <div class="flex gap-2">
+                        <button type="button" id="btn-cancel-reset" class="flex-1 py-3 rounded-xl bg-gray-100 text-gray-600 font-medium">Cancelar</button>
+                        <button type="button" id="btn-confirm-reset" class="flex-1 py-3 rounded-xl bg-indigo-600 text-white font-medium shadow-md">Enviar</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================================================================== -->
+    <!-- TELA 2: HOME (Dashboard) -->
+    <!-- ================================================================== -->
+    <div id="view-home" class="hidden fixed inset-0 z-40 flex flex-col px-6 pt-safe-top pb-safe-bottom overflow-y-auto">
+        <div class="flex justify-between items-center mt-6 mb-8">
+            <div>
+                <p class="text-sm text-gray-500 font-medium">Bem-vindo de volta,</p>
+                <h1 id="home-user-name" class="text-2xl font-bold text-gray-900 truncate max-w-[200px]">Historiador</h1>
+            </div>
+            <button id="btn-logout" class="p-2 rounded-full bg-white shadow-sm border border-gray-100 text-gray-400 hover:text-red-500 transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                </svg>
+            </button>
+        </div>
+
+        <div class="glass-panel p-6 rounded-3xl mb-8 relative overflow-hidden shadow-sm">
+            <div class="absolute -right-4 -top-4 text-9xl opacity-5">❝</div>
+            <p class="text-gray-600 italic font-serif relative z-10">"A história é testemunha do passado, luz da verdade, vida da memória."</p>
+            <p class="text-xs text-gray-400 mt-2 font-bold uppercase tracking-widest">— Cícero</p>
+        </div>
+
+        <div class="grid grid-cols-1 gap-5">
+            <button id="btn-go-scan" class="btn-press group relative h-40 w-full rounded-3xl overflow-hidden shadow-xl transition-all">
+                <div class="absolute inset-0 bg-gradient-to-br from-indigo-600 to-blue-700 transition-transform group-hover:scale-105"></div>
+                <div class="absolute inset-0 opacity-20 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]"></div>
+                <div class="absolute inset-0 p-6 flex flex-col justify-between text-white">
+                    <div class="w-12 h-12 bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
                         </svg>
-                        <p class="mb-2 text-sm text-gray-500"><span class="font-semibold">Clique para anexar</span> ou arraste</p>
-                        <p class="text-xs text-gray-500">PNG, JPG, WEBP</p>
+                    </div>
+                    <div class="text-left">
+                        <h3 class="text-xl font-bold">Nova Descoberta</h3>
+                        <p class="text-blue-100 text-sm">Fotografar monumento</p>
+                    </div>
+                </div>
+            </button>
+
+            <button id="btn-go-catalog" class="btn-press group relative h-40 w-full rounded-3xl overflow-hidden shadow-lg bg-white border border-gray-100">
+                <div class="absolute inset-0 p-6 flex flex-col justify-between">
+                    <div class="w-12 h-12 bg-orange-100 rounded-2xl flex items-center justify-center text-orange-600">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                        </svg>
+                    </div>
+                    <div class="text-left">
+                        <h3 class="text-xl font-bold text-gray-800">Minha Coleção</h3>
+                        <p class="text-gray-400 text-sm">Ver histórico salvo</p>
+                    </div>
+                </div>
+            </button>
+        </div>
+        <p class="text-center text-xs text-gray-300 mt-auto mb-4">v2.1 • Design Premium</p>
+    </div>
+
+    <!-- ================================================================== -->
+    <!-- TELA 3: SCANNER -->
+    <!-- ================================================================== -->
+    <div id="view-scan" class="hidden fixed inset-0 z-50 flex flex-col bg-[#f0f2f5] overflow-y-auto">
+        <div class="pt-safe-top px-4 py-4 flex items-center sticky top-0 bg-white/80 backdrop-blur-md z-10 border-b border-gray-200">
+            <button id="btn-back-home" class="p-2 -ml-2 rounded-full hover:bg-gray-100 transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+                </svg>
+            </button>
+            <h2 class="text-lg font-bold text-gray-900 ml-2">Nova Análise</h2>
+        </div>
+
+        <div class="p-6 pb-20 max-w-2xl mx-auto w-full">
+            <div class="mb-6">
+                <label for="file-upload" class="group relative flex flex-col items-center justify-center w-full aspect-[4/5] border-2 border-dashed border-gray-300 rounded-3xl cursor-pointer bg-white shadow-sm hover:bg-gray-50 transition-all overflow-hidden">
+                    <img id="image-preview" src="" class="hidden absolute inset-0 w-full h-full object-cover z-10" />
+                    <div id="upload-prompt" class="flex flex-col items-center justify-center pt-5 pb-6 z-0 transition-transform group-hover:scale-105">
+                        <div class="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center mb-4">
+                            <svg class="w-8 h-8 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                            </svg>
+                        </div>
+                        <p class="mb-1 text-sm font-bold text-gray-700">Tirar Foto</p>
+                        <p class="text-xs text-gray-400">ou escolher da galeria</p>
                     </div>
                     <input id="file-upload" type="file" class="hidden" accept="image/*" />
+                    <button id="btn-reset-img" class="hidden absolute top-4 right-4 z-20 bg-black/50 text-white p-2 rounded-full backdrop-blur-md">
+                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" /></svg>
+                    </button>
                 </label>
-                
-                <!-- Nome do arquivo -->
-                <p id="file-name-display" class="text-center text-sm text-gray-500 mt-2 truncate"></p>
             </div>
 
-            <!-- --- Botão de Envio --- -->
-            <button id="submit-button" disabled class="w-full bg-blue-600 text-white font-bold py-3 px-6 rounded-lg hover:bg-blue-700 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed shadow-md flex items-center justify-center">
-                <!-- Ícone de Loading (inicialmente oculto) -->
+            <button id="submit-button" disabled class="btn-press w-full bg-gray-900 text-white font-bold py-4 px-6 rounded-2xl shadow-xl hover:bg-black transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center text-lg">
                 <svg id="loading-spinner" class="animate-spin -ml-1 mr-3 h-5 w-5 text-white hidden" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                     <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                     <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                 </svg>
-                <!-- Texto do Botão -->
-                <span id="submit-button-text">Gerar História e Post</span>
+                <span id="submit-button-text">Gerar História</span>
             </button>
 
-            <!-- --- Seção de Erro --- -->
-            <div id="error-message" class="hidden mt-4 bg-red-100 border border-red-300 text-red-800 p-3 rounded-lg text-center">
-                <!-- Mensagens de erro aparecerão aqui -->
-            </div>
-
-            <!-- --- Seção de Resultados (inicialmente oculta) --- -->
             <div id="results-section" class="hidden mt-8 space-y-6">
-                
-                <!-- Card de História -->
-                <div class="bg-white p-5 rounded-lg shadow-inner border border-gray-100">
-                    <h2 id="result-identificacao" class="text-2xl font-semibold text-gray-800 mb-3 border-b pb-2">
-                        <!-- Identificação do local -->
-                    </h2>
-                    <p id="result-historia" class="text-gray-700 leading-relaxed whitespace-pre-wrap">
-                        <!-- História do local -->
-                    </p>
+                <div id="firestore-error-box" class="hidden glass-panel border-l-4 border-red-500 p-4 rounded-xl">
+                    <h3 class="text-red-700 font-bold text-sm">Acesso Negado (Firebase)</h3>
+                    <p class="text-xs text-gray-500 mt-1">Configure as regras no console.</p>
                 </div>
-
-                <!-- Card do Instagram -->
-                <div class="bg-white p-5 rounded-lg shadow-inner border border-gray-100">
-                    <div class="flex justify-between items-center mb-3 border-b pb-2">
-                        <h2 class="text-2xl font-semibold text-gray-800">Post para Instagram 📱</h2>
-                        <button id="copy-button" class="bg-gray-200 text-gray-700 hover:bg-gray-300 py-1 px-3 rounded-md text-sm font-medium transition-colors">
-                            Copiar
-                        </button>
+                <div id="save-success-msg" class="hidden glass-panel border-l-4 border-green-500 p-4 rounded-xl flex items-center gap-3">
+                    <div class="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center text-green-600">✓</div>
+                    <span class="text-sm font-medium text-gray-700">História salva na sua coleção!</span>
+                </div>
+                <div class="bg-white p-6 rounded-3xl shadow-sm border border-gray-100">
+                    <h2 id="result-identificacao" class="text-2xl font-bold text-gray-900 mb-4 font-serif"></h2>
+                    <p id="result-historia" class="text-gray-600 leading-relaxed text-base"></p>
+                </div>
+                <div class="bg-white p-6 rounded-3xl shadow-sm border border-gray-100">
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="text-lg font-bold text-gray-900">Para Instagram</h2>
+                        <button id="copy-button" class="text-xs font-bold bg-gray-100 text-gray-600 hover:bg-gray-200 px-3 py-1.5 rounded-lg transition-colors">Copiar</button>
                     </div>
-                    <pre id="result-post" class="text-gray-700 leading-relaxed whitespace-pre-wrap bg-gray-50 p-4 rounded-md text-sm">
-                        <!-- Post do Instagram -->
-                    </pre>
+                    <div class="bg-gray-50 p-4 rounded-xl border border-gray-100">
+                         <pre id="result-post" class="text-gray-600 text-sm whitespace-pre-wrap font-sans"></pre>
+                    </div>
                 </div>
-
             </div>
-            
         </div>
     </div>
 
-    <script>
-        // Espera o documento carregar para rodar o script
-        document.addEventListener('DOMContentLoaded', () => {
+    <!-- ================================================================== -->
+    <!-- TELA 4: CATÁLOGO (Collection View) -->
+    <!-- ================================================================== -->
+    <div id="view-catalog" class="hidden fixed inset-0 z-50 flex flex-col bg-[#f0f2f5]">
+        <div class="pt-safe-top px-4 py-4 flex items-center sticky top-0 bg-white/80 backdrop-blur-md z-10 border-b border-gray-200">
+            <button id="btn-close-catalog" class="p-2 -ml-2 rounded-full hover:bg-gray-100 transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+                </svg>
+            </button>
+            <h2 class="text-lg font-bold text-gray-900 ml-2">Minha Coleção</h2>
+        </div>
 
-            // --- Constantes da API ---
-            const API_KEY = "AIzaSyBo90fWoREhClB8W3fuI4mD8_eEDrPYrKo"; // Deixe em branco, será fornecido pelo ambiente
-            const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${API_KEY}`;
-            const RESPONSE_SCHEMA = {
-                type: "OBJECT",
-                properties: {
-                    identificacao: { type: "STRING" },
-                    historia: { type: "STRING" },
-                    postInstagram: { type: "STRING" }
-                },
-                required: ["identificacao", "historia", "postInstagram"]
-            };
+        <div class="flex-1 overflow-y-auto p-4 pb-20">
+            <div id="catalog-loader" class="flex justify-center mt-20">
+                <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+            </div>
+            <div id="empty-catalog-msg" class="hidden flex flex-col items-center justify-center mt-20 text-gray-400">
+                <svg class="w-16 h-16 mb-4 opacity-20" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clip-rule="evenodd"></path></svg>
+                <p>Sua coleção está vazia.</p>
+            </div>
+            <div id="catalog-list" class="grid grid-cols-2 gap-4">
+                <!-- Grid de Itens injetado via JS -->
+            </div>
+        </div>
+    </div>
 
-            // --- Elementos DOM ---
-            const fileUpload = document.getElementById('file-upload');
-            const imagePreview = document.getElementById('image-preview');
-            const uploadPrompt = document.getElementById('upload-prompt');
-            const fileNameDisplay = document.getElementById('file-name-display');
-            const submitButton = document.getElementById('submit-button');
-            const submitButtonText = document.getElementById('submit-button-text');
-            const loadingSpinner = document.getElementById('loading-spinner');
-            const errorMessage = document.getElementById('error-message');
-            const resultsSection = document.getElementById('results-section');
-            const resultIdentificacao = document.getElementById('result-identificacao');
-            const resultHistoria = document.getElementById('result-historia');
-            const resultPost = document.getElementById('result-post');
-            const copyButton = document.getElementById('copy-button');
+    <!-- ================================================================== -->
+    <!-- TELA 5: DETALHES (Overlay - Z-Index Fix) -->
+    <!-- ================================================================== -->
+    <!-- z-[2000] para garantir prioridade máxima e hidden inicial removido via JS -->
+    <div id="view-detail" class="hidden fixed inset-0 z-[2000] flex flex-col bg-white transform translate-y-full transition-transform duration-300 shadow-2xl">
+        <div class="relative h-[45vh] shrink-0">
+            <img id="detail-image" src="" class="w-full h-full object-cover">
+            <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent"></div>
+            <button id="btn-close-detail" class="absolute top-4 left-4 pt-safe-top z-10 p-2 bg-white/20 backdrop-blur-md rounded-full text-white active:bg-white/40">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
+            </button>
+            <button id="btn-delete-item" class="absolute top-4 right-4 pt-safe-top z-10 p-2 bg-red-500/80 backdrop-blur-md rounded-full text-white active:bg-red-600">
+                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+            </button>
+            <div class="absolute bottom-0 left-0 right-0 p-6">
+                <p id="detail-date" class="text-xs text-white/70 uppercase tracking-widest mb-1 font-medium"></p>
+                <h2 id="detail-title" class="text-3xl font-bold text-white font-serif leading-tight shadow-sm"></h2>
+            </div>
+        </div>
+        <div class="flex-1 overflow-y-auto bg-white -mt-6 rounded-t-3xl relative z-10 px-6 pt-8 pb-10">
+            <div class="prose prose-blue mx-auto">
+                <h3 class="text-sm font-bold text-gray-400 uppercase tracking-wider mb-3">História</h3>
+                <p id="detail-history" class="text-gray-700 leading-relaxed text-lg mb-8"></p>
+                <div class="bg-gray-50 rounded-2xl p-6 border border-gray-100">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-sm font-bold text-gray-900 m-0">Legenda Instagram</h3>
+                        <button id="detail-copy-btn" class="text-xs text-indigo-600 font-bold bg-indigo-50 px-3 py-1 rounded-lg active:scale-95 transition-transform">Copiar</button>
+                    </div>
+                    <pre id="detail-post" class="text-gray-600 text-sm whitespace-pre-wrap font-sans m-0"></pre>
+                </div>
+            </div>
+        </div>
+    </div>
 
-            // --- Estado da Aplicação ---
-            let base64Image = null;
-            let imageFile = null;
+    <!-- FIREBASE & LOGIC -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-analytics.js";
+        import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut, updateProfile, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, deleteDoc, doc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-            // --- Funções Auxiliares de UI ---
+        // CONFIGURAÇÃO FIREBASE
+        const firebaseConfig = {
+            apiKey: "AIzaSyCnkh24srnZakGDvb6cqdNnyUgWNaTfM1w",
+            authDomain: "historiador-da19f.firebaseapp.com",
+            projectId: "historiador-da19f",
+            storageBucket: "historiador-da19f.firebasestorage.app",
+            messagingSenderId: "957072534300",
+            appId: "1:957072534300:web:bb7b7902b22bde11b868d9",
+            measurementId: "G-9PT5C6ENNH"
+        };
+
+        // Init Firebase
+        let app, auth, db;
+        try {
+            app = initializeApp(firebaseConfig);
+            auth = getAuth(app);
+            db = getFirestore(app);
+        } catch (e) {
+            console.error("Erro Firebase", e);
+        }
+
+        const WORKER_URL = "https://historiador.lucasmaia2709.workers.dev";
+
+        // === DOM REFERENCES ===
+        const ui = {
+            views: {
+                auth: document.getElementById('view-auth'),
+                home: document.getElementById('view-home'),
+                scan: document.getElementById('view-scan'),
+                catalog: document.getElementById('view-catalog'),
+                detail: document.getElementById('view-detail')
+            },
+            auth: {
+                form: document.getElementById('auth-form'),
+                registerForm: document.getElementById('register-form'),
+                email: document.getElementById('auth-email'),
+                password: document.getElementById('auth-password'),
+                error: document.getElementById('auth-error'),
+                btnLogin: document.getElementById('btn-login'),
+                btnToRegister: document.getElementById('btn-to-register'),
+                successMsg: document.getElementById('login-success-msg'),
+                regName: document.getElementById('reg-name'),
+                regEmail: document.getElementById('reg-email'),
+                regPass: document.getElementById('reg-password'),
+                regError: document.getElementById('reg-error'),
+                btnRegSubmit: document.getElementById('btn-submit-register'),
+                btnBackLogin: document.getElementById('btn-back-login'),
+                modalReset: document.getElementById('forgot-password-modal'),
+                btnForgotLink: document.getElementById('btn-forgot-password-link'),
+                resetEmail: document.getElementById('reset-email'),
+                btnCancelReset: document.getElementById('btn-cancel-reset'),
+                btnConfirmReset: document.getElementById('btn-confirm-reset'),
+                resetMsg: document.getElementById('reset-msg')
+            },
+            home: {
+                userName: document.getElementById('home-user-name'),
+                btnLogout: document.getElementById('btn-logout'),
+                btnGoScan: document.getElementById('btn-go-scan'),
+                btnGoCatalog: document.getElementById('btn-go-catalog')
+            },
+            scan: {
+                btnBack: document.getElementById('btn-back-home'),
+                fileInput: document.getElementById('file-upload'),
+                preview: document.getElementById('image-preview'),
+                prompt: document.getElementById('upload-prompt'),
+                btnResetImg: document.getElementById('btn-reset-img'),
+                submitBtn: document.getElementById('submit-button'),
+                spinner: document.getElementById('loading-spinner'),
+                btnText: document.getElementById('submit-button-text'),
+                results: document.getElementById('results-section'),
+                title: document.getElementById('result-identificacao'),
+                history: document.getElementById('result-historia'),
+                post: document.getElementById('result-post'),
+                copyBtn: document.getElementById('copy-button'),
+                errorBox: document.getElementById('firestore-error-box'),
+                successMsg: document.getElementById('save-success-msg')
+            },
+            catalog: {
+                btnClose: document.getElementById('btn-close-catalog'),
+                grid: document.getElementById('catalog-list'),
+                loader: document.getElementById('catalog-loader'),
+                empty: document.getElementById('empty-catalog-msg')
+            },
+            detail: {
+                container: document.getElementById('view-detail'),
+                btnClose: document.getElementById('btn-close-detail'),
+                btnDelete: document.getElementById('btn-delete-item'),
+                img: document.getElementById('detail-image'),
+                title: document.getElementById('detail-title'),
+                date: document.getElementById('detail-date'),
+                history: document.getElementById('detail-history'),
+                post: document.getElementById('detail-post'),
+                copyBtn: document.getElementById('detail-copy-btn')
+            }
+        };
+
+        let currentUser = null;
+        let base64Image = null;
+        let imageFile = null;
+        let currentDetailId = null;
+        let catalogUnsubscribe = null;
+        let isRegistering = false;
+
+        function switchView(viewName) {
+            // Só esconde as views principais, o detail tem tratamento especial
+            Object.keys(ui.views).forEach(key => {
+                if (key !== 'detail') ui.views[key].classList.add('hidden');
+            });
             
-            /** Mostra uma mensagem de erro */
-            function showError(message) {
-                errorMessage.textContent = message;
-                errorMessage.classList.remove('hidden');
-            }
+            const target = ui.views[viewName];
+            target.classList.remove('hidden');
+            target.classList.add('fade-enter-active');
+            if(viewName === 'home' && currentUser) ui.home.userName.textContent = currentUser.displayName || "Historiador";
+            if(viewName === 'catalog') loadCatalogRealtime();
+        }
 
-            /** Limpa a mensagem de erro */
-            function clearError() {
-                errorMessage.textContent = '';
-                errorMessage.classList.add('hidden');
-            }
-
-            /** Controla o estado de carregamento do botão */
-            function setLoading(isLoading) {
-                submitButton.disabled = isLoading;
-                if (isLoading) {
-                    submitButtonText.textContent = 'Analisando...';
-                    loadingSpinner.classList.remove('hidden');
-                    submitButton.classList.add('opacity-50', 'cursor-not-allowed');
-                } else {
-                    submitButtonText.textContent = 'Gerar História e Post';
-                    loadingSpinner.classList.add('hidden');
-                    submitButton.classList.remove('opacity-50', 'cursor-not-allowed');
-                }
-            }
-
-            /** Mostra os resultados na tela */
-            function showResults(analysisResult) {
-                resultIdentificacao.textContent = analysisResult.identificacao || 'História do Local';
-                resultHistoria.textContent = analysisResult.historia;
-                resultPost.textContent = analysisResult.postInstagram;
-                resultsSection.classList.remove('hidden');
-            }
-
-            /** Limpa os resultados anteriores */
-            function clearResults() {
-                resultsSection.classList.add('hidden');
-                resultIdentificacao.textContent = '';
-                resultHistoria.textContent = '';
-                resultPost.textContent = '';
-            }
-
-            // --- Funções de Lógica ---
-
-            /**
-             * Tenta executar uma função assíncrona com tentativas de backoff exponencial.
-             */
-            const fetchWithBackoff = async (asyncFn, maxRetries = 5, baseDelay = 1000) => {
-                let retries = 0;
-                while (retries < maxRetries) {
-                    try {
-                        const response = await asyncFn();
-                        if (!response.ok) {
-                            if (response.status === 429 || response.status >= 500) {
-                                throw new Error(`HTTP error! status: ${response.status}`);
-                            } else {
-                                const errorData = await response.json();
-                                console.error("Erro da API (não tentará novamente):", errorData);
-                                showError(`Erro da API: ${errorData.error?.message || response.statusText}`);
-                                return null;
-                            }
-                        }
-                        return await response.json();
-                    } catch (error) {
-                        retries++;
-                        if (retries >= maxRetries) {
-                            console.error("Máximo de tentativas atingido.", error);
-                            showError("O serviço está sobrecarregado. Por favor, tente novamente mais tarde.");
-                            return null;
-                        }
-                        const delay = baseDelay * Math.pow(2, retries) + Math.random() * 1000;
-                        await new Promise(resolve => setTimeout(resolve, delay));
-                    }
-                }
-                return null;
-            };
-
-            /** Converte um arquivo para string Base64 (apenas os dados) */
-            const convertFileToBase64 = (file) => {
-                return new Promise((resolve, reject) => {
-                    const reader = new FileReader();
-                    reader.readAsDataURL(file);
-                    reader.onload = () => {
-                        const base64String = reader.result.split(',')[1];
-                        resolve(base64String);
-                    };
-                    reader.onerror = (error) => reject(error);
-                });
-            };
-
-            /** Copia texto para a área de transferência */
-            const copyToClipboard = (text) => {
-                const textArea = document.createElement("textarea");
-                textArea.value = text;
-                textArea.style.position = "fixed";
-                textArea.style.opacity = 0;
-                document.body.appendChild(textArea);
-                textArea.select();
-                try {
-                    document.execCommand('copy');
-                    copyButton.textContent = "Copiado!";
-                    copyButton.classList.remove('bg-gray-200', 'text-gray-700', 'hover:bg-gray-300');
-                    copyButton.classList.add('bg-green-100', 'text-green-700');
-                    setTimeout(() => {
-                        copyButton.textContent = "Copiar";
-                        copyButton.classList.add('bg-gray-200', 'text-gray-700', 'hover:bg-gray-300');
-                        copyButton.classList.remove('bg-green-100', 'text-green-700');
-                    }, 2000);
-                } catch (err) {
-                    console.error('Falha ao copiar texto: ', err);
-                    showError("Não foi possível copiar o texto.");
-                }
-                document.body.removeChild(textArea);
-            };
-
-            // --- Manipuladores de Eventos ---
-
-            /** Manipulador de mudança de imagem */
-            fileUpload.addEventListener('change', async (event) => {
-                const file = event.target.files[0];
-                if (!file) return;
-
-                if (!file.type.startsWith("image/")) {
-                    showError("Por favor, anexe um arquivo de imagem (jpeg, png, etc.).");
-                    return;
-                }
-                
-                clearError();
-                clearResults();
-                imageFile = file;
-
-                // Mostra o nome do arquivo
-                fileNameDisplay.textContent = `Arquivo: ${file.name}`;
-
-                try {
-                    // Converte para base64
-                    const base64 = await convertFileToBase64(file);
-                    base64Image = base64; // Salva os dados brutos
-
-                    // Mostra a pré-visualização
-                    imagePreview.src = `data:${file.type};base64,${base64}`;
-                    imagePreview.classList.remove('hidden');
-                    uploadPrompt.classList.add('hidden');
-                    
-                    // Habilita o botão
-                    submitButton.disabled = false;
-
-                } catch (error) {
-                    console.error("Erro ao converter imagem:", error);
-                    showError("Não foi possível processar a imagem.");
-                    base64Image = null;
-                    imageFile = null;
-                    submitButton.disabled = true;
-                }
-            });
-
-            /** Manipulador de envio (clique no botão) */
-            submitButton.addEventListener('click', async () => {
-                if (!base64Image) {
-                    showError("Por favor, escolha uma imagem primeiro.");
-                    return;
-                }
-
-                setLoading(true);
-                clearError();
-                clearResults();
-
-                const prompt = `
-                    Você é um historiador especialista e um guru de mídias sociais. 
-                    Analise a imagem deste local ou monumento.
-                    1. Identifique o local/monumento (campo 'identificacao').
-                    2. Forneça um resumo de sua história e significado (campo 'historia').
-                    3. Crie uma legenda de post para o Instagram sobre ele. A legenda deve ser envolvente, informativa, incluir emojis relevantes e 3-5 hashtags populares (campo 'postInstagram').
-                `;
-
-                const payload = {
-                    contents: [
-                        {
-                            parts: [
-                                { text: prompt },
-                                {
-                                    inlineData: {
-                                        mimeType: imageFile.type,
-                                        data: base64Image
-                                    }
-                                }
-                            ]
-                        }
-                    ],
-                    generationConfig: {
-                        responseMimeType: "application/json",
-                        responseSchema: RESPONSE_SCHEMA
-                    }
-                };
-
-                const result = await fetchWithBackoff(() => 
-                    fetch(API_URL, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(payload)
-                    })
-                );
-
-                setLoading(false);
-
-                if (result && result.candidates?.[0]?.content?.parts?.[0]?.text) {
-                    try {
-                        const jsonResponse = JSON.parse(result.candidates[0].content.parts[0].text);
-                        showResults(jsonResponse);
-                    } catch (e) {
-                        console.error("Erro ao analisar JSON da resposta:", e);
-                        showError("A resposta da API não pôde ser formatada. Tente novamente.");
-                    }
-                } else if (!errorMessage.textContent) { // Só mostra erro se o fetchWithBackoff já não tiver mostrado um
-                    showError("Não foi possível obter uma resposta da API. Verifique o console para detalhes.");
-                }
-            });
-
-            /** Manipulador do botão de copiar */
-            copyButton.addEventListener('click', () => {
-                const textToCopy = resultPost.textContent;
-                if (textToCopy) {
-                    copyToClipboard(textToCopy);
-                }
-            });
-
+        onAuthStateChanged(auth, (user) => {
+            if (isRegistering) return;
+            currentUser = user;
+            if (user) switchView('home');
+            else switchView('auth');
         });
-    </script>
 
+        // AUTH & NAVIGATION LOGIC
+        ui.auth.btnToRegister.onclick = () => { ui.auth.form.classList.add('hidden'); ui.auth.registerForm.classList.remove('hidden'); };
+        ui.auth.btnBackLogin.onclick = () => { ui.auth.registerForm.classList.add('hidden'); ui.auth.form.classList.remove('hidden'); };
+        
+        ui.auth.form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = ui.auth.email.value;
+            const password = ui.auth.password.value;
+            ui.auth.error.classList.add('hidden');
+            ui.auth.btnLogin.textContent = "Verificando...";
+            try { await signInWithEmailAndPassword(auth, email, password); } 
+            catch (error) { ui.auth.error.textContent = getAuthErrorMsg(error.code); ui.auth.error.classList.remove('hidden'); } 
+            finally { ui.auth.btnLogin.textContent = "Entrar"; }
+        });
+
+        ui.auth.registerForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const name = ui.auth.regName.value;
+            const email = ui.auth.regEmail.value;
+            const pass = ui.auth.regPass.value;
+            isRegistering = true;
+            ui.auth.btnRegSubmit.textContent = "Criando conta...";
+            ui.auth.regError.classList.add('hidden');
+            try {
+                const cred = await createUserWithEmailAndPassword(auth, email, pass);
+                await updateProfile(cred.user, { displayName: name });
+                await signOut(auth);
+                ui.auth.registerForm.classList.add('hidden');
+                ui.auth.form.classList.remove('hidden');
+                ui.auth.successMsg.classList.remove('hidden');
+            } catch (e) { ui.auth.regError.textContent = getAuthErrorMsg(e.code); ui.auth.regError.classList.remove('hidden'); } 
+            finally { ui.auth.btnRegSubmit.textContent = "Confirmar Cadastro"; isRegistering = false; }
+        });
+
+        ui.auth.btnForgotLink.onclick = () => ui.auth.modalReset.classList.remove('hidden');
+        ui.auth.btnCancelReset.onclick = () => { ui.auth.modalReset.classList.add('hidden'); ui.auth.resetMsg.classList.add('hidden'); };
+        ui.auth.btnConfirmReset.onclick = async () => {
+            const email = ui.auth.resetEmail.value;
+            if(!email) { alert("Digite o email"); return; }
+            ui.auth.btnConfirmReset.textContent = "...";
+            try {
+                await sendPasswordResetEmail(auth, email);
+                ui.auth.resetMsg.textContent = "Email enviado!";
+                ui.auth.resetMsg.className = "text-xs text-center p-2 mb-2 rounded bg-green-100 text-green-700 block";
+            } catch (e) {
+                ui.auth.resetMsg.textContent = "Erro: " + getAuthErrorMsg(e.code);
+                ui.auth.resetMsg.className = "text-xs text-center p-2 mb-2 rounded bg-red-100 text-red-700 block";
+            } finally { ui.auth.btnConfirmReset.textContent = "Enviar"; }
+        };
+
+        ui.home.btnLogout.onclick = () => signOut(auth);
+        
+        function getAuthErrorMsg(code) {
+            if(code.includes('invalid-email')) return 'Email inválido';
+            if(code.includes('user-not-found')) return 'Usuário não existe';
+            if(code.includes('wrong-password')) return 'Senha incorreta';
+            if(code.includes('weak-password')) return 'Senha fraca';
+            return 'Erro no login/cadastro';
+        }
+
+        ui.home.btnGoScan.onclick = () => switchView('scan');
+        ui.home.btnGoCatalog.onclick = () => switchView('catalog');
+        ui.scan.btnBack.onclick = () => switchView('home');
+        ui.catalog.btnClose.onclick = () => switchView('home');
+
+        // SCANNER LOGIC
+        ui.scan.fileInput.addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if(!file) return;
+            imageFile = file;
+            const reader = new FileReader();
+            reader.onload = (ev) => {
+                ui.scan.preview.src = ev.target.result;
+                ui.scan.preview.classList.remove('hidden');
+                ui.scan.prompt.classList.add('hidden');
+                ui.scan.btnResetImg.classList.remove('hidden');
+                base64Image = ev.target.result.split(',')[1];
+                ui.scan.submitBtn.disabled = false;
+                ui.scan.results.classList.add('hidden');
+            };
+            reader.readAsDataURL(file);
+        });
+
+        ui.scan.btnResetImg.onclick = (e) => {
+            e.preventDefault();
+            ui.scan.preview.classList.add('hidden');
+            ui.scan.prompt.classList.remove('hidden');
+            ui.scan.btnResetImg.classList.add('hidden');
+            ui.scan.fileInput.value = '';
+            base64Image = null;
+            ui.scan.submitBtn.disabled = true;
+            ui.scan.results.classList.add('hidden');
+        };
+
+        ui.scan.submitBtn.onclick = async () => {
+            if(!base64Image) return;
+            setLoading(true);
+            try {
+                const res = await fetch(WORKER_URL, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ imageBase64: base64Image, mimeType: imageFile.type })
+                });
+                if(!res.ok) throw new Error("Erro API");
+                const json = await res.json();
+                const data = JSON.parse(json.candidates[0].content.parts[0].text);
+                
+                ui.scan.title.textContent = data.identificacao;
+                ui.scan.history.textContent = data.historia;
+                ui.scan.post.textContent = data.postInstagram;
+                ui.scan.results.classList.remove('hidden');
+                ui.scan.results.scrollIntoView({behavior:'smooth'});
+                await saveToFirestore(data);
+            } catch (e) { alert("Erro ao analisar imagem."); } 
+            finally { setLoading(false); }
+        };
+
+        function setLoading(state) {
+            ui.scan.submitBtn.disabled = state;
+            if(state) {
+                ui.scan.btnText.textContent = "Analisando...";
+                ui.scan.spinner.classList.remove('hidden');
+                ui.scan.submitBtn.classList.add('opacity-75');
+            } else {
+                ui.scan.btnText.textContent = "Gerar História";
+                ui.scan.spinner.classList.add('hidden');
+                ui.scan.submitBtn.classList.remove('opacity-75');
+            }
+        }
+
+        async function saveToFirestore(data) {
+            if(!currentUser) return;
+            ui.scan.errorBox.classList.add('hidden');
+            ui.scan.successMsg.classList.add('hidden');
+            try {
+                const thumb = await compressImage(base64Image);
+                await addDoc(collection(db, "users", currentUser.uid, "history"), {
+                    timestamp: serverTimestamp(),
+                    identificacao: data.identificacao,
+                    historia: data.historia,
+                    postInstagram: data.postInstagram,
+                    imageThumb: thumb
+                });
+                ui.scan.successMsg.classList.remove('hidden');
+            } catch (e) {
+                if(e.code === 'permission-denied') ui.scan.errorBox.classList.remove('hidden');
+            }
+        }
+
+        // CATALOG & GRID FIX
+        function loadCatalogRealtime() {
+            if(!currentUser) return;
+            ui.catalog.loader.classList.remove('hidden');
+            ui.catalog.empty.classList.add('hidden');
+            ui.catalog.grid.innerHTML = '';
+            
+            const q = query(collection(db, "users", currentUser.uid, "history"), orderBy("timestamp", "desc"));
+            if(catalogUnsubscribe) catalogUnsubscribe();
+            
+            catalogUnsubscribe = onSnapshot(q, (snapshot) => {
+                ui.catalog.loader.classList.add('hidden');
+                ui.catalog.grid.innerHTML = '';
+                if(snapshot.empty) {
+                    ui.catalog.empty.classList.remove('hidden');
+                } else {
+                    ui.catalog.empty.classList.add('hidden');
+                    snapshot.forEach(doc => {
+                        const item = {id: doc.id, ...doc.data()};
+                        createCatalogItem(item);
+                    });
+                }
+            });
+        }
+
+        function createCatalogItem(item) {
+            const div = document.createElement('div');
+            // USANDO DIV COM CURSOR POINTER
+            div.className = "relative w-full pb-[100%] rounded-2xl overflow-hidden shadow-md bg-gray-100 cursor-pointer active:scale-95 transition-transform tap-highlight-transparent";
+            
+            div.innerHTML = `
+                <img src="${item.imageThumb}" class="absolute inset-0 w-full h-full object-cover pointer-events-none">
+                <div class="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent flex items-end p-3 pointer-events-none">
+                    <span class="text-white text-xs font-bold truncate w-full drop-shadow-md text-left">${item.identificacao}</span>
+                </div>
+            `;
+            
+            // Evento direto na div
+            div.onclick = function() {
+                openDetail(item);
+            };
+
+            ui.catalog.grid.appendChild(div);
+        }
+
+        function compressImage(b64) {
+            return new Promise(r => {
+                const i = new Image(); i.src = "data:image/jpeg;base64,"+b64;
+                i.onload = () => {
+                    const c = document.createElement('canvas');
+                    const s = 300/i.width;
+                    c.width = 300; c.height = i.height*s;
+                    c.getContext('2d').drawImage(i,0,0,c.width,c.height);
+                    r(c.toDataURL('image/jpeg', 0.6));
+                }
+            });
+        }
+
+        // DETAIL VIEW (FIXED)
+        function openDetail(item) {
+            try {
+                currentDetailId = item.id;
+                ui.detail.img.src = item.imageThumb || '';
+                ui.detail.title.textContent = item.identificacao || 'Sem Título';
+                ui.detail.history.textContent = item.historia || 'Sem descrição.';
+                ui.detail.post.textContent = item.postInstagram || '';
+                
+                let dateStr = "Data não disponível";
+                if(item.timestamp) {
+                    const d = item.timestamp.toDate ? item.timestamp.toDate() : new Date(item.timestamp);
+                    dateStr = d.toLocaleDateString('pt-BR');
+                }
+                ui.detail.date.textContent = dateStr;
+                
+                // IMPORTANTISSIMO: Remove hidden e remove translate
+                ui.detail.container.classList.remove('hidden');
+                // Pequeno delay para permitir que o navegador renderize o 'block' antes de animar o transform
+                setTimeout(() => {
+                    ui.detail.container.classList.remove('translate-y-full');
+                }, 10);
+                
+            } catch(e) {
+                console.error("Erro ao abrir detalhe", e);
+                // Fallback para não travar
+                alert("Erro ao abrir detalhes: " + e.message);
+            }
+        }
+
+        ui.detail.btnClose.onclick = () => {
+            ui.detail.container.classList.add('translate-y-full');
+            // Espera a animação acabar para esconder
+            setTimeout(() => {
+                ui.detail.container.classList.add('hidden');
+            }, 300);
+        };
+        
+        ui.detail.btnDelete.onclick = async () => {
+            if(!confirm("Apagar?")) return;
+            await deleteDoc(doc(db, "users", currentUser.uid, "history", currentDetailId));
+            ui.detail.btnClose.click(); // Usa a lógica de fechar já pronta
+        };
+
+        const copy = (txt, btn) => {
+            navigator.clipboard.writeText(txt).then(() => {
+                const old = btn.textContent;
+                btn.textContent = "Copiado!";
+                setTimeout(() => btn.textContent = old, 2000);
+            });
+        };
+        ui.scan.copyBtn.onclick = () => copy(ui.scan.post.textContent, ui.scan.copyBtn);
+        ui.detail.copyBtn.onclick = () => copy(ui.detail.post.textContent, ui.detail.copyBtn);
+
+    </script>
 </body>
 </html>
