@@ -49,20 +49,39 @@
         <div class="absolute -bottom-[20%] left-[20%] w-[60%] h-[60%] bg-pink-200 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob animation-delay-4000"></div>
     </div>
 
-    <!-- --- Script PWA --- -->
+    <!-- --- Script PWA (Icone Customizável) --- -->
     <script>
         (function() {
-            const canvas = document.createElement('canvas');
-            canvas.width = 512; canvas.height = 512;
-            const ctx = canvas.getContext('2d');
-            const grd = ctx.createLinearGradient(0, 0, 0, 512);
-            grd.addColorStop(0, "#1e3a8a"); grd.addColorStop(1, "#4c1d95");
-            ctx.fillStyle = grd; ctx.fillRect(0, 0, 512, 512);
-            ctx.font = '300px serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('🏛️', 256, 256);
-            const iconUrl = canvas.toDataURL('image/png');
+            // =================================================================
+            // 🔴 ÁREA DE CUSTOMIZAÇÃO DO ÍCONE
+            // Coloque o nome do seu arquivo ou URL aqui dentro das aspas.
+            // Se deixar vazio "", ele cria o ícone padrão automaticamente.
+            const customIcon = "https://raw.githubusercontent.com/lucasmaia2709-lang/HistoriaInstagram-/refs/heads/main/logo1.jpg"; 
+            // Exemplo: const customIcon = "meu-icone.png";
+            // =================================================================
+
+            let iconUrl;
+
+            if (customIcon && customIcon.trim() !== "") {
+                // Usa a imagem que você definiu
+                iconUrl = customIcon;
+            } else {
+                // Gera o ícone padrão se não houver imagem definida
+                const canvas = document.createElement('canvas');
+                canvas.width = 512; canvas.height = 512;
+                const ctx = canvas.getContext('2d');
+                const grd = ctx.createLinearGradient(0, 0, 0, 512);
+                grd.addColorStop(0, "#1e3a8a"); grd.addColorStop(1, "#4c1d95");
+                ctx.fillStyle = grd; ctx.fillRect(0, 0, 512, 512);
+                ctx.font = '300px serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('🏛️', 256, 256);
+                iconUrl = canvas.toDataURL('image/png');
+            }
+
+            // Aplica o ícone no navegador/celular
             let link = document.querySelector("link[rel*='icon']") || document.createElement('link');
             link.type = 'image/png'; link.rel = 'shortcut icon'; link.href = iconUrl;
             document.head.appendChild(link);
+            
             let appleLink = document.querySelector("link[rel='apple-touch-icon']") || document.createElement('link');
             appleLink.rel = 'apple-touch-icon'; appleLink.href = iconUrl;
             document.head.appendChild(appleLink);
