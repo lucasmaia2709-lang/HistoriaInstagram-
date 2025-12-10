@@ -164,10 +164,11 @@
             </button>
         </div>
 
+        <!-- Adicionado IDs para a frase e autor -->
         <div class="glass-panel p-6 rounded-3xl mb-8 relative overflow-hidden shadow-sm">
             <div class="absolute -right-4 -top-4 text-9xl opacity-5">❝</div>
-            <p class="text-gray-600 italic font-serif relative z-10">"A história é testemunha do passado, luz da verdade, vida da memória."</p>
-            <p class="text-xs text-gray-400 mt-2 font-bold uppercase tracking-widest">— Cícero</p>
+            <p id="daily-quote" class="text-gray-600 italic font-serif relative z-10">"A história é testemunha do passado, luz da verdade, vida da memória."</p>
+            <p id="daily-author" class="text-xs text-gray-400 mt-2 font-bold uppercase tracking-widest">— Cícero</p>
         </div>
 
         <div class="grid grid-cols-1 gap-5">
@@ -437,6 +438,22 @@
             }
         };
 
+        // --- GERADOR DE CITAÇÕES ---
+        const quotes = [
+            { text: "A história é testemunha do passado, luz da verdade, vida da memória.", author: "Cícero" },
+            { text: "Um povo sem memória é um povo sem história.", author: "Emília Viotti da Costa" },
+            { text: "Aquele que não conhece a história está condenado a repeti-la.", author: "Edmund Burke" },
+            { text: "A história é um profeta com o olhar voltado para trás.", author: "Heinrich Heine" },
+            { text: "O passado nunca morre. Não é nem passado.", author: "William Faulkner" },
+            { text: "Quem não sabe de onde vem, não sabe para onde vai.", author: "Provérbio Africano" }
+        ];
+
+        function updateQuote() {
+            const q = quotes[Math.floor(Math.random() * quotes.length)];
+            document.getElementById('daily-quote').textContent = `"${q.text}"`;
+            document.getElementById('daily-author').textContent = `— ${q.author}`;
+        }
+
         let currentUser = null;
         let base64Image = null;
         let imageFile = null;
@@ -453,7 +470,11 @@
             const target = ui.views[viewName];
             target.classList.remove('hidden');
             target.classList.add('fade-enter-active');
-            if(viewName === 'home' && currentUser) ui.home.userName.textContent = currentUser.displayName || "Historiador";
+            
+            if(viewName === 'home') {
+                if(currentUser) ui.home.userName.textContent = currentUser.displayName || "Historiador";
+                updateQuote(); // Atualiza a frase sempre que entra na home
+            }
             if(viewName === 'catalog') loadCatalogRealtime();
         }
 
